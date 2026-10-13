@@ -51,14 +51,24 @@ def einordnen(mail: str, versuche: int = 3) -> Anfrage:
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": mail},
     ]
-    # TODO 1: Ruft das Modell auf. Wählt eine passende temperature
-    #         und übergebt response_format=schema_von(Anfrage).
-    # TODO 2: Prüft die Antwort mit Anfrage.model_validate_json(...).
-    # TODO 3: Schlägt die Prüfung fehl (ValidationError), versucht es
-    #         erneut, höchstens `versuche`-mal. Gebt bei jedem
-    #         Fehlversuch eine kurze Meldung aus. Klappt es gar
-    #         nicht, werft einen RuntimeError.
-    raise NotImplementedError("TODO: einordnen() umsetzen")
+
+
+    for versuch in range(1, 3):
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=nachricht,
+            temperature=0.0,                #2.5 liefert zu ausführliche Frist, 1.2 und 0.0 beide mehrmals 7/8, wähle 0.0 kurze frist antworten
+            response_format=schema_von(Anfrage),
+        )
+
+        json_string = response.choices[0].message.content
+        try:
+            return Anfrage.model_validate_json(json_string)
+        except ValidationError as e:
+            print(f"Fehler bei der Validierung (Versuch {versuch}): {e}")
+            if versuch == versuche:
+                raise RuntimeError("Maximale Anzahl an Versuchen erreicht.")
+
 
 
 def auswerten() -> None:
@@ -68,9 +78,20 @@ def auswerten() -> None:
     richtig = 0
     for fall in faelle:
         ergebnis = einordnen(fall["mail"])
-        # TODO 4: Vergleicht ergebnis mit fall["erwartet"]. Zählt einen
-        #         Fall als richtig, wenn das Anliegen stimmt. Gebt für
-        #         jeden Fall Mail, Ergebnis und ✓ oder ✗ aus.
+        erwartet = fall["erwartet"]
+
+        passt = ergebnis.anliegen == erwartet["anliegen"]
+
+        if passt:
+            richtig += 1
+            print("✓ Anliegen stimmt überein.")
+        else:
+            print("✗ Anliegen stimmt nicht überein.")
+
+        print(f"\nMail: {fall['mail']}")
+        print(f"Ergebnis: {ergebnis.model_dump_json(indent=2)}")
+        print(f"Erwartet: {json.dumps(erwartet, indent=2)}")
+
     print(f"\n{richtig} von {len(faelle)} Anliegen richtig ({MODEL})")
 
 
