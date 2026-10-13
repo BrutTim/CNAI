@@ -15,3 +15,12 @@ Frage:                  was ist 1+1     wer ist Trump?      wer ist atp rank num
 Time to First Token:    1635 ms         127 m               102 ms
 Gesamtdauer:            1784 ms         636 ms              582 ms
 Qualität:               brauchbar       nicht brauchbar     nicht brauchbar
+
+Ist die HTWG Konstanz eine private oder eine staatliche Hochschule?
+qwen: 
+Die HTWG Konstanz ist als staatliche Hochschule beschrieben.
+llama:
+Die Hochschule für Technik und Wirtschaft Konstanz (HTWG) Konstanz ist eine staatliche Hochschule. Als eine staatliche Hochschule ist sie Teil des öffentlichen Hochschulnetzes und steht unter der Aufsicht des Bundesministeriums für Wirtschaft und Kultur.
+Wir bieten sowohl die traditionelle staatliche Lehre als auch verschiedene Studienangebote an der HKU und HTW Konstanz an.
+
+Llama lang mit zusatzinfo, qwen kurz und einsilbig.
