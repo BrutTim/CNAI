@@ -53,11 +53,11 @@ def einordnen(mail: str, versuche: int = 3) -> Anfrage:
     ]
 
 
-    for versuch in range(1, 3):
+    for versuch in range(1, 4):
         response = client.chat.completions.create(
             model=MODEL,
             messages=nachricht,
-            temperature=0.0,                #2.5 liefert zu ausführliche Frist, 1.2 und 0.0 beide mehrmals 7/8, wähle 0.0 kurze frist antworten
+            temperature=0.0,                #2.5 liefert zu ausführliche Frist, 1.2 und 0.0 beide mehrmals 7/8, wähle 1.2 da 0.0 bei wiederhoöung gleichbleibt
             response_format=schema_von(Anfrage),
         )
 

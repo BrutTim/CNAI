@@ -1,4 +1,17 @@
 # CNAI
+Vincent Rayhle (311935), Tim Brutscher (311981)
+
+Es gibt keinen besonderen Startbefehl, Eingaben wie auf den Übungen
+
+model steht in .env da der API schlüssel so mit .gitignore geschützt ist.
+1.2 da wir eine Varianz in der Ausgabe wollen für stabilität, aber noch recht kurze Antworten brauchen
+Das die Model Ausgabe dem Anfrage schema folgt, aber nicht das die Werte sinnvoll sind
+Lokale Modelle:
+Datenschutz (infos verlassen nie meinen PC)
+wenn ich unabhängig von USA etc sein will
+Cloud:
+wenn ich einen schwachen PC habe
+wenn ich power brauche
 
 ## Teil 1 · Modellaufruf
 
@@ -57,3 +70,25 @@ Deutsch    70 Tokens für 18 Wörter
 Englisch   49 Tokens für 21 Wörter
 
 Deutsch braucht 21 Tokens mehr (+43%).
+
+## Teil 4
+1.
+llama:  7/8
+qwen:   2/8
+
+2.
+Frist ist häufig falsch, aber nicht inhaltlich, sondern vom Format.
+Studiengang hat auch Fehler aber weniger.
+
+3.
+Es wird immer null eingetragen statt leeres Wort.
+Model erkennt nie Frist ohne tatsächliche Frist.
+das Schema erwartet String oder None, da String eigentlich alles ist geht alles durch.
+
+4.
+Wird nicht umgelenkt, aber es werden Daten "erfunden".
+
+5.
+Was passiert: Fehler bei der Validierung (Versuch 2): 1 validation error for Anfrage
+studiengang
+Warum neu bei 0.0 keine änderung? bei 0.0 ist deterministisch, könnte temp erhöhen.
