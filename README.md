@@ -51,3 +51,9 @@ Deutsch    63 Tokens für 21 Wörter
 Englisch   49 Tokens für 21 Wörter
 
 Deutsch braucht 14 Tokens mehr (+29%).
+
+2.
+Deutsch    70 Tokens für 18 Wörter
+Englisch   49 Tokens für 21 Wörter
+
+Deutsch braucht 21 Tokens mehr (+43%).
