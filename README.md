@@ -2,6 +2,10 @@
 Vincent Rayhle (311935), Tim Brutscher (311981)
 
 Es gibt keinen besonderen Startbefehl, Eingaben wie auf den Übungen
+Die .env muss enthalten:
+LLM_BASE_URL=<link>
+LLM_MODEL=<Model name>
+LLM_API_KEY=<key des models>
 
 model steht in .env da der API schlüssel so mit .gitignore geschützt ist.
 1.2 da wir eine Varianz in der Ausgabe wollen für stabilität, aber noch recht kurze Antworten brauchen
@@ -81,7 +85,7 @@ Frist ist häufig falsch, aber nicht inhaltlich, sondern vom Format.
 Studiengang hat auch Fehler aber weniger.
 
 3.
-Es wird immer null eingetragen statt leeres Wort.
+Es wird immer null eingetragen allerdings ohne "", wenn man sich json direkt anschaut sieht man das None im Feld steht
 Model erkennt nie Frist ohne tatsächliche Frist.
 das Schema erwartet String oder None, da String eigentlich alles ist geht alles durch.
 
@@ -92,3 +96,18 @@ Wird nicht umgelenkt, aber es werden Daten "erfunden".
 Was passiert: Fehler bei der Validierung (Versuch 2): 1 validation error for Anfrage
 studiengang
 Warum neu bei 0.0 keine änderung? bei 0.0 ist deterministisch, könnte temp erhöhen.
+
+## Zusatz
+Mit llama
+Vorher alle drei richtig 5/8
+Danach alle drei richtig 5/8
+
+Fehler sind falsches anliegen und 2 mal Studiengang gefunden wo keiner erwartet war, alle diese Ergebnisse haben 
+gültige kürzel machen aber inhaltlisch einfach kein Sinn, ewerden deshalb nicht von validator oder code prüfung erkannt.
+
+Trage beide Zahlen (Frist) ein:
+Ergebnis:   Freitag, 16.10. 30.10.  24.10.  bis Ende Oktober"
+erwartete:  16.10.          30.10.  24.10   Ende Oktobe
+
+
+
