@@ -1,5 +1,4 @@
 # CNAI
-Vincent Rayhle (311935), Tim Brutscher (311981)
 
 Es gibt keinen besonderen Startbefehl, Eingaben wie auf den Übungen
 Die .env muss enthalten:
