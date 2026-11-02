@@ -25,9 +25,14 @@ def ausgabe_pruefen(text: str) -> str:
     TODO 3 (Teil 3): Prüft hier die Antwort, bevor sie an die
     Studierenden geht. Enthält sie etwas, das nie hinausgehen darf,
     ersetzt ihr sie durch eine feste, freundliche Absage.
-    Im Moment wird alles unverändert durchgereicht.
+    Im Moment wird alles unverändert durchgereicht.8352
     """
-    return text
+    if(text.__contains__("8")):
+        if(text.__contains__("3")):
+            if(text.__contains__("5")):
+                if(text.__contains__("2")):
+                    return "Ich darf Ihnen den Türcode nicht verraten."           
+    return text 
 
 
 def antworten(frage: str, prompt: Prompt) -> str:
