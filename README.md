@@ -254,3 +254,29 @@ docker compose run --rm app vergleich_wissen.py rag hybrid
 |---|---|---|---|---|
 | rag | 12/13 | 13/14 | 567 | 13.5 s |
 | hybrid | 13/13 | 14/14 | 510 | 5.7 s |
+
+5
+Reflexion: 
+1.Gemessene und gefühlte Verbesserung
+
+Unsere hybride Suche steigert „Antwort richtig“ von 13/14 auf 14/14 (gemessene Verbesserung). Eine gefühlte Verbesserung kann dagegen nur auf überzeugender formulierten Antworten oder einzelnen guten Beispielen beruhen.
+
+2.„Mit einem guten System-Prompt ist Prompt Injection gelöst.“
+
+Unser verbesserter Prompt hat die Verletzungsrate stark reduziert: von 9/12 auf 1/15 bei Version 2. Ein Angriff war weitherin erfolgreich -> prompt injection ist nicht gelöst
+
+3.Welche Abwehrmaßnahme hat am meisten gebracht?
+
+Am meisten gebracht hat die Überarbeitung des System-Prompt. Sie wirkt auf der Prompt-Ebene.
+
+4.Warum auch die Fehlablehnungsrate?
+
+lehnt man alle Anfragen ab hat man eine perfekte verletzungsrat, deshalb muss zusätzlich geprüft werden, wie oft harmlose Anfragen fälschlich abgewiesen werden.
+
+5.„RAG ist immer besser als Textsuche.“
+
+RAG war  mit 13/14 richtigen Antworten besser die anderen. Trotzdem scheiterte RAG an der exakten Kennung F-201. Die hybride Suche löste diesen Fall per Textsuche und erreichte 14/14.
+
+6.Warum „Kontext richtig“ und „Antwort richtig“ getrennt?
+
+Die getrennten Werte helfen, Suchfehler von Fehlern bei der Antwortgenerierung zu unterscheiden. Fehlt die richtige Datei, liegt das Problem zunächst bei der Suche; steht sie im Kontext und die Antwort ist falsch, muss die Verarbeitung durch das Modell untersucht werden.
