@@ -99,3 +99,47 @@ Es wird an eine Namenskonevetion in des werkzeugs bestimmt. Das kann durch cleve
 
 
 ## Teil 3 * Verbessern und messen (Kern)
+
+Modell: llama3.2:3b · 13 Aufgaben
+
+Variante                  Antwort  Werkz.  ungültig  Fehler  Abbruch  Aufrufe Ø  Modell Ø  Tokens Ø  Dauer Ø
+agent.v1.yaml               3/13    9/13          0       3        0        0.8       1.8      1200    10.2s
+agent.v2.yaml               2/13    9/13          0       2        0        0.9       1.8      1946    12.3s
+workflow                    5/13    7/13          0       3        0        0.7       2.0       447     4.7s
+
+Richtige Antworten nach Typ:
+Variante                       datum      direkt      wissen mehrschritt  schreibend        ohne       fehlt
+agent.v1.yaml                    1/4         1/1         0/4         1/1         0/1         0/1         0/1
+agent.v2.yaml                    0/4         1/1         0/4         0/1         0/1         0/1         1/1
+workflow                         2/4         0/1         1/4         0/1         0/1         1/1         1/1
+
+
+Modell: qwen2.5:3b · 13 Aufgaben
+
+Variante                  Antwort  Werkz.  ungültig  Fehler  Abbruch  Aufrufe Ø  Modell Ø  Tokens Ø  Dauer Ø
+agent.v1.yaml               4/13    8/13          0       1        0        0.6       1.6      1623     2.6s
+agent.v2.yaml               3/13    8/13          0       1        0        0.8       1.7      2400     2.9s
+workflow                    3/13    8/13          0       0        0        0.8       2.0       436     2.4s
+
+Richtige Antworten nach Typ:
+Variante                       datum      direkt      wissen mehrschritt  schreibend        ohne       fehlt
+agent.v1.yaml                    0/4         1/1         0/4         1/1         1/1         0/1         1/1
+agent.v2.yaml                    1/4         1/1         0/4         0/1         0/1         0/1         1/1
+workflow                         1/4         1/1         0/4         0/1         0/1         0/1         1/1
+
+3.2
+Workflow gewinnt bei den Aufgaben Datum wissen ohen mit Model Lama. Da Der Workflow ein Festen Pfad vorgibt und dies der Arbeit der modelle komplett abnimmt. 
+Bei den Agent hat bei gwen das Datum besser funktioniert. 
+Gennerell ist z usagen das die verbesserung in der Gesamt wirkung nicht besobders gut ist. Eventuell wegen des größen Prompts mit ablenkung oder so
+
+3.3
+Für den Agenten qwen: 
+- schneller 
+- produziert wengier Fehler beim werkzeug aufrufen
+- beste Trefferquote
+
+Für Workflow lama:
+- höcshte Trefferquote 
+- Weniger Tokens 
+
+## Teil 4 
