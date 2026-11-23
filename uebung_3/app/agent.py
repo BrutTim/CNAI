@@ -24,7 +24,7 @@ from prompts import Prompt, lade
 from werkzeuge import LOKALE_WERKZEUGE, Werkzeug
 
 STANDARD_PROMPT = "prompts/agent.v1.yaml"
-MAX_SCHRITTE = 1  # Modellaufrufe pro Aufgabe, danach Abbruch
+MAX_SCHRITTE = 6  # Modellaufrufe pro Aufgabe, danach Abbruch
 
 
 @dataclass
