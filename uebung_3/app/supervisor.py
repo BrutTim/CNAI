@@ -21,6 +21,7 @@ Gezählt wird alles: Modellaufrufe und Tokens von Supervisor und Spezialisten.
 """
 
 import argparse
+import os
 import time
 from typing import Literal
 
@@ -32,7 +33,7 @@ from prompts import lade
 from werkzeuge import Werkzeug
 from workflow import schema_von
 
-SUPERVISOR_PROMPT = "prompts/supervisor.v1.yaml"
+SUPERVISOR_PROMPT = os.environ.get("SUPERVISOR_PROMPT_FILE", "prompts/supervisor.v1.yaml")
 
 # Spezialist: Prompt und erlaubte Werkzeuge. Fehlt ein Werkzeug (etwa tage_bis
 # ohne TODO 2), wird es einfach weggelassen.

@@ -200,7 +200,7 @@ Es wird nicht doppelt gebucht, weil nach dem ersten Bestätigen offene_aktion so
 
 4.3 
 
-1. Beim Merken soll der Fakt als kurzer Satz über die Person gespeichert werden, zum Beispiel „Die Person isst vegetarisch.“ `merken()` speichert den Text aus dem Werkzeugaufruf so wie er kommt und entfernt nur Leerzeichen am Anfang und Ende. In meinem Lauf hat llama den Werkzeugaufruf teilweise fehlerhaft formatiert, dadurch wurde der Fakt nicht zuverlässig gespeichert.
+1. Der Fakt sollte als kurzer Satz über die Person gespeichert werden, zum Beispiel „Die Person isst vegetarisch.“ `merken()` speicherte den Text aus dem Werkzeugaufruf unverändert und entfernte nur Leerzeichen am Anfang und Ende. Im llama-Lauf wurde der Werkzeugaufruf teilweise fehlerhaft formatiert, dadurch wurde der Fakt nicht zuverlässig gespeichert.
 
 2. Messungen:
 
@@ -216,15 +216,21 @@ Modell: llama3.2:3b · 6 Aufgaben · Fenster 20 Nachrichten
 | ohne Memory | kurzzeit | 1/6 | 6/6 | 12 | 8.434 | 102 s |
 | ohne Memory | langzeit | 0/3 | 3/6 | 12 | 7.361 | 65 s |
 
-Qwen2.5:3b mache ich noch, die Tabelle ergänze ich danach.
+Modell: qwen2.5:3b · 6 Aufgaben · Fenster 20 Nachrichten
 
-Bei llama verbessert das Memory die Kurzzeit-Aufgaben nicht: beide Varianten haben 1/6 Treffer. In den Langzeit-Aufgaben steigt die Trefferzahl mit Memory von 0/3 auf 1/3 und die Werkzeugquote von 3/6 auf 4/6. Dafür braucht die Variante mit Memory mehr Tokens und dauert länger. In meinem Lauf wurde „Wie heiße ich?“ richtig beantwortet; die vegetarische Mensa-Antwort passte nicht zu den erwarteten Gerichten und die Lerngruppenbuchung übernahm den Gruppennamen nicht richtig.
+Variante       Typ         Treffer  Werkz.  Aufrufe Σ  Tokens Σ  Dauer Σ
+mit Memory     kurzzeit      2/6     5/6            9     11923      81s
+mit Memory     langzeit      2/3     6/6           11     13772      65s
+ohne Memory    kurzzeit      2/6     5/6            9      9646      36s
+ohne Memory    langzeit      0/3     3/6            8      7931      45s
 
-3. Jeder Fakt wird bei jeder neuen Frage in den System-Prompt eingefügt. Der zusätzliche Aufwand hängt von der Länge des Faktentextes ab und wird bei jeder Anfrage erneut als Eingabe-Token mitgeschickt. Im Code sind höchstens 50 Fakten erlaubt, deshalb können 500 Fakten nicht gespeichert werden. Bei vielen Fakten würde ich nur passende Erinnerungen auswählen, zum Beispiel nach Thema oder Relevanz zur aktuellen Frage.
+Bei llama verbesserte das Memory die Kurzzeit-Aufgaben nicht: Beide Varianten hatten 1/6 Treffer. In den Langzeit-Aufgaben stieg die Trefferzahl mit Memory von 0/3 auf 1/3 und die Werkzeugquote von 3/6 auf 4/6. Dafür brauchte die Variante mit Memory mehr Tokens und dauerte länger. Im Lauf wurde „Wie heiße ich?“ richtig beantwortet; die vegetarische Mensa-Antwort passte nicht zu den erwarteten Gerichten und die Lerngruppenbuchung übernahm den Gruppennamen nicht richtig.
+
+3. Jeder Fakt wird bei jeder neuen Frage in den System-Prompt eingefügt. Der zusätzliche Aufwand hängt von der Länge des Faktentextes ab und wird bei jeder Anfrage erneut als Eingabe-Token mitgeschickt. Im Code sind höchstens 50 Fakten erlaubt, deshalb können 500 Fakten nicht gespeichert werden. Bei vielen Fakten sollten nur passende Erinnerungen ausgewählt werden, zum Beispiel nach Thema oder Relevanz zur aktuellen Frage.
 
 4. Memory Poisoning:
 
-   Den Poisoning-Versuch habe ich nicht separat ausgeführt. Laut Code kann ein schädlicher Fakt gespeichert werden, wenn der Agent eine Anweisung aus einem verarbeiteten Text übernimmt und selbst merken aufruft. In memory_prompt() steht zwar, dass die Fakten Angaben und keine Anweisungen sind, aber das Modell kann sich trotzdem davon beeinflussen lassen. Das Memory prüft den Inhalt nicht. Beim Buchen greift die Bestätigung vor dem schreibenden Werkzeug, aber das verhindert nicht, dass ein falscher oder gefährlicher Fakt gespeichert wird.
+   Der Poisoning-Versuch wurde nicht separat ausgeführt. Laut Code kann ein schädlicher Fakt gespeichert werden, wenn der Agent eine Anweisung aus einem verarbeiteten Text übernimmt und selbst `merken` aufruft. In `memory_prompt()` steht zwar, dass die Fakten Angaben und keine Anweisungen sind, aber das Modell kann sich trotzdem davon beeinflussen lassen. Das Memory prüft den Inhalt nicht. Beim Buchen greift die Bestätigung vor dem schreibenden Werkzeug, aber das verhindert nicht, dass ein falscher oder gefährlicher Fakt gespeichert wird.
 
 5. Für eine vollständige Löschung müssen außer memory.json auch die Sitzungsdateien unter sitzungen gelöscht werden, weil dort alte Nachrichten und Antworten stehen. Falls es Backups oder gespeicherte Logs dieser Daten gibt, müssen diese ebenfalls entfernt werden.
 
@@ -242,18 +248,56 @@ Variante                       datum      direkt      wissen mehrschritt  schrei
 agent.v1.yaml                    1/4         1/1         0/4         1/1         0/1         0/1         0/1
 supervisor                       0/4         1/1         0/4         1/1         0/1         0/1         0/1
 
+Modell: qwen2.5:3b · 13 Aufgaben
+
+Variante                  Antwort  Werkz.  ungültig  Fehler  Abbruch  Aufrufe Ø  Modell Ø  Tokens Ø  Dauer Ø
+agent.v1.yaml               4/13    8/13          0       1        0        0.6       1.6      1623     5.5s
+supervisor                  3/13    9/13          0       0        0        1.1       2.8      1434     8.1s
+
+Richtige Antworten nach Typ:
+Variante                       datum      direkt      wissen mehrschritt  schreibend        ohne       fehlt
+agent.v1.yaml                    0/4         1/1         0/4         1/1         1/1         0/1         1/1
+supervisor                       2/4         1/1         0/4         0/1         0/1         0/1         0/1
+
+1. Beim llama-Modell hatte der Agent mehr richtige Antworten als der Supervisor (3/13 zu 2/13). Bei Qwen war es ähnlich (4/13 zu 3/13). Der Supervisor brauchte in beiden Läufen mehr Modellaufrufe und war bei Qwen auch langsamer; bei llama war die Gesamtdauer fast gleich. Die ungefähren Eingabe-Tokens pro richtiger Antwort wurden als Tokens Ø × 13 Aufgaben ÷ richtige Antworten berechnet:
+
+| Modell | agent.v1 | supervisor |
+|---|---:|---:|
+| llama3.2:3b | ca. 5.200 | ca. 8.392 |
+| qwen2.5:3b | ca. 5.275 | ca. 6.214 |
+
+Die Werte sind Näherungen, weil Tokens Ø in der Tabelle gerundet ist.
+
+2. Beim Qwen-Lauf zeigte sich ein möglicher Planungsfehler: Bei „Wo kann ich mein Auto abstellen und was kostet es?“ kam „Dazu habe ich keine Information“ zurück, ohne dass ein passender Wissen-Spezialist eingesetzt wurde. Bei der Übergabe wurde in einem Lauf aus der Frage nach F-012 „heute um 14 Uhr“ der Auftrag „F-012 um 14 Uhr frei?“; der Tag fehlte im Auftrag. Beim Spezialisten zeigte sich ein Datumsfehler: `heute()` lieferte den 03.11.2026, danach wurde aber der Speiseplan für den 05.11. abgefragt. Diese Beispiele stammen aus einzelnen Läufen; die Gesamttabelle allein zeigte die Fehlerquelle nicht.
+
+3. Der Vergleich war nicht ganz fair. agent.v1 bekam einen allgemeinen Prompt und alle Werkzeuge, während die Spezialisten eigene Prompts mit zusätzlichen Fachregeln und jeweils weniger Werkzeugen hatten. Um den Effekt der Aufteilung zu trennen, wäre derselbe Aufgabensatz zusätzlich mit einem Einzel-Agenten zu messen gewesen, der dieselben Fachregeln und Werkzeugbeschreibungen erhielt; Modell und übrige Einstellungen hätten gleich bleiben müssen.
+
+4. Nach der Änderung an supervisor.v2.yaml enthielt der Prompt Beispiele zur Aufgabenverteilung und die Regel, relative Tage wie „heute“ unverändert an Spezialisten weiterzugeben. supervisor.py wurde so angepasst, dass die Prompt-Datei über SUPERVISOR_PROMPT_FILE geladen werden konnte. Bei llama stiegen die Treffer von 2/13 auf 3/13, während Modellaufrufe, Tokens und Laufzeit sanken. Bei Qwen stiegen die Treffer von 3/13 auf 5/13 und Aufrufe sowie Tokens sanken, die Laufzeit stieg aber von 8,1 auf 10,3 Sekunden. Der Datumsfehler trat weiterhin auf und wurde durch die Änderung nicht vollständig behoben.
+
+| Modell | Version | Treffer | Werkzeuge | Modellaufrufe Ø | Tokens Ø | Dauer Ø |
+|---|---|---:|---:|---:|---:|---:|
+| llama3.2:3b | supervisor.v1 | 2/13 | 10/13 | 3,3 | 1.291 | 29,0 s |
+| llama3.2:3b | supervisor.v2 | 3/13 | 9/13 | 2,9 | 1.267 | 17,3 s |
+| qwen2.5:3b | supervisor.v1 | 3/13 | 9/13 | 2,8 | 1.434 | 8,1 s |
+| qwen2.5:3b | supervisor.v2 | 5/13 | 8/13 | 2,6 | 1.346 | 10,3 s |
+
+Messbefehle für die neue Version:
+
+
+docker compose run --rm -e SUPERVISOR_PROMPT_FILE=prompts/supervisor.v2.yaml app messen.py supervisor
+docker compose run --rm -e LLM_MODEL=qwen2.5:3b -e SUPERVISOR_PROMPT_FILE=prompts/supervisor.v2.yaml app messen.py supervisor
 
 ## Teil 5 · Reflexion
 
-1. Mit LangGraph hätte ich die Knoten, Übergänge und Checkpoints nicht selbst bauen müssen. Dafür hätte ich eine zusätzliche Abhängigkeit und mehr Abstraktion, wodurch der Ablauf am Anfang schwerer zu verstehen ist. Für unseren kleinen Assistenten finde ich den eigenen Code zum Lernen sinnvoll; bei einem größeren System würde ich ein Framework nehmen.
+1. LangGraph hätte die Knoten, Übergänge und Checkpoints bereitgestellt, dadurch wäre weniger eigener Code nötig gewesen. Dafür wären eine zusätzliche Abhängigkeit und mehr Abstraktion hinzugekommen, wodurch der Ablauf am Anfang schwerer zu verstehen gewesen wäre. Für den kleinen Assistenten war der eigene Code zum Lernen sinnvoll; für ein größeres System wäre ein Framework passend gewesen.
 
 2. Eine Anweisung kann in einem Dokument oder einer Werkzeugantwort stehen und den Agenten dazu bringen, sie mit `merken` dauerhaft abzulegen. Das ist gefährlicher als eine Prompt Injection in einer einzelnen Sitzung, weil der gespeicherte Fakt auch spätere Gespräche beeinflusst. Dagegen helfen eine Prüfung und Bestätigung vor dem Speichern sowie eine klare Trennung zwischen Fakten und Anweisungen im Memory.
 
-3. Meine Einschätzung: Ein Supervisor ist praktisch, wenn eine Frage mehrere Fachbereiche betrifft und einzelne Spezialisten gezielter antworten können. Dafür entstehen zusätzliche Modellaufrufe und mehr Laufzeit; das Beispiel oben brauchte für zwei Teilfragen 6 Modellaufrufe, 2127 Eingabe-Tokens und 204 Sekunden. Der direkte Vergleich mit einem einzelnen Agenten fehlt hier noch, deshalb ist das nur eine vorläufige Einschätzung und muss mit den Messungen aus 4.4 verglichen werden.
+3. Mit `supervisor.v1` hatte der einzelne Agent mehr Treffer: 3/13 statt 2/13 bei llama und 4/13 statt 3/13 bei Qwen. Mit `supervisor.v2` stieg der Supervisor auf 3/13 bei llama und 5/13 bei Qwen; damit lag er bei Qwen über dem Einzel-Agenten und bei llama gleichauf. Für einfache Fragen ist der einzelne Agent meist sparsamer, während die Aufteilung bei mehreren Fachbereichen helfen kann, wie deutlich der Vorteil ist hängt aber vom Modell und Prompt ab.
 
 4. Eine Bestätigung sollte nötig sein, wenn ein Werkzeug etwas außerhalb des Gesprächs verändert oder Folgen hat, die schwer rückgängig zu machen sind, zum Beispiel eine Raumbuchung. `merken` verändert zwar dauerhafte Daten, betrifft aber nur das persönliche Memory und kann über `memory.py` wieder gelöscht werden. Trotzdem sollte die Person sehen und kontrollieren können, was gespeichert wurde.
 
-5. Für lange Gespräche würde ich ältere Nachrichten zusammenfassen und die letzten Nachrichten vollständig behalten. Das spart Tokens gegenüber dem ganzen Verlauf, aber die Zusammenfassung kann wichtige Details verlieren und muss bei neuen Themen aktualisiert werden.
+5. Für lange Gespräche hätte sich eine Zusammenfassung älterer Nachrichten angeboten, während die letzten Nachrichten vollständig erhalten geblieben wären. Das hätte Tokens gegenüber dem ganzen Verlauf gespart, aber die Zusammenfassung hätte wichtige Details verlieren können und bei neuen Themen aktualisiert werden müssen.
 
 6. Der Arbeitsspeicher eines Containers geht bei einem Neustart verloren und ist zwischen mehreren Replikas nicht geteilt. Deshalb gehören Checkpoints in einen dauerhaften, gemeinsam erreichbaren Speicher, zum Beispiel eine Datenbank. Dann kann eine andere Replika die Sitzung fortsetzen.
 
