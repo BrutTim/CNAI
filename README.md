@@ -143,3 +143,110 @@ Für Workflow lama:
 - Weniger Tokens 
 
 ## Teil 4 
+
+1. 
+-> system -> user -> assistant (Call) -> tool (Result) -> assistant (Antwort)
+Jedes Werkzueg hat ein Werkzeug ID 
+
+2. 
+
+  ? Soll ich raum_buchen(datum='2026-11-05', uhrzeit='09:45', name='um 9:45', raum='O-108') ausführen? [j/N] j
+  → raum_buchen(datum='2026-11-05', uhrzeit='09:45', name='um 9:45', raum='O-108')
+  ← O-108 ist am 2026-11-05 (donnerstag) um 09:45 bereits belegt von Webapplikationen.
+
+  Er setzt für alle Werte 9:45 ein da dem Model durch den Kurzen Satz alle wichtigen INfos fehlen. UNd da  der Agent Zustandlos ist und immer wieder den Prozess von Vorne anfängt.
+  
+3. 
+Frage 1: 5531 Eingabe-Tokens gesamt
+Frage 2: 7884 Eingabe-Tokens gesamt
+
+fesnter-2
+Frage 1: 1589 Eingabe-Tokens gesamt
+Frage 2: 3178 Eingabe-Tokens gesamt 
+
+Beim normalen Fenster steigen die Eingabe-Tokens von 5.531 auf 7.884, weil der gesamte Verlauf der ersten Frage erneut mitgeschickt wird. Mit --fenster 2 halbiert sich der Tokenverbrauch zwar auf 1.589 bzw. 3.178 Tokens, allerdings verliert das Modell dadurch den Kontext von Frage 1 und kann die Folgefrage „Und um 9:45?“ nicht mehr beantworten. Die Funktion kuerzen() beginnt immer bei einer user-Nachricht, damit niemals ein abgeschnittenes, verwaistes Werkzeugergebnis am Anfang steht, was die LLM-API sonst sofort mit einem Validierungsfehler (fehlende tool_call_id) abweisen würd
+
+4. 
+Wir speichern in der while schleife in Ausführen. So wie einmal nach dem Verlassen. Nur das aktuell laufende noch nicht gespeicherte. 
+
+4.2
+
+1. Checkpoint während des Wartens
+Kommando:
+docker compose run --rm app orchestrator.py --sitzung kim "Dann buch mir den Raum von vorhin für 14 Uhr, für die Lerngruppe Kim."
+
+status: "wartet_auf_bestaetigung"
+offene_aktion: raum_buchen mit datum='2026-11-05', uhrzeit='14:00', raum='O-108', name='Kim'
+
+Raum, Uhrzeit und Name stimmen. Aber das Datum ist falsch: 2026-11-05 ist Donnerstag, Kim wollte aber Freitag (06.11.). Deshalb ist die Anzeige der Argumente so wichtig: Würde man nur stumpf "Buchen? [j/N]" fragen, würde der Nutzer blind den falschen Tag buchen. Erst durch die Argument-Anzeige fällt der Fehler auf.
+
+2. Ablehnen mit --ablehnen
+Kommando:
+docker compose run --rm app orchestrator.py --sitzung kim_nein "Buche O-108 am Freitag um 14 Uhr für Kim."
+docker compose run --rm app orchestrator.py --sitzung kim_nein --ablehnen
+
+Bei --ablehnen wird die offene Aktion gelöscht (None) und die Nachricht "Aktion wurde abgelehnt" an das Modell übergeben. Das Modell bricht den Buchungsvorgang ab und bestätigt dem Nutzer, dass nichts gebucht wurde.
+
+3. Zweimal --bestaetigen und Idempotenz
+Kommando:
+docker compose run --rm app orchestrator.py --sitzung kim --bestaetigen
+docker compose run --rm app orchestrator.py --sitzung kim --bestaetigen
+
+Es wird nicht doppelt gebucht, weil nach dem ersten Bestätigen offene_aktion sofort auf None gesetzt wird. Ein zweiter Aufruf bricht direkt mit "wartet auf keine Bestätigung" ab. Wenn der Container mitten im Buchen stirbt, muss das Werkzeug Idempotenz (Idempotent) besitzen: Ein erneuter Aufruf mit denselben Daten darf keinen Schaden anrichten oder doppelt buchen, sondern bestätigt einfach den bestehenden Eintrag.
+
+4. Szenarien für Unterbrechung mit Checkpoint
+- Web-UI / Asynchrone Freigabe: Bestätigungen kommen im echten Leben per Mail oder Web-Button oft erst Stunden später. Ein blockierender Terminal-Prozess würde Timeouts werfen und Server-Ressourcen blockieren.
+- Kubernetes / Pod-Crash: Wenn der Server-Container neu startet oder skaliert wird, ist der RAM leer. Durch den Checkpoint auf der Festplatte/Datenbank kann ein komplett neuer Container die Sitzung später nahtlos fortsetzen.
+
+4.3 
+
+1. Beim Merken soll der Fakt als kurzer Satz über die Person gespeichert werden, zum Beispiel „Die Person isst vegetarisch.“ merken() speichert den Text aus dem Werkzeugaufruf so wie er kommt und entfernt nur Leerzeichen am Anfang und Ende. In meinem Lauf hat llama den Werkzeugaufruf teilweise fehlerhaft formatiert, dadurch wurde der Fakt nicht zuverlässig gespeichert.
+
+2. Messungen:
+
+docker compose run --rm app messen.py --sitzungen
+docker compose run --rm -e LLM_MODEL=qwen2.5:3b app messen.py --sitzungen
+
+| Modell | mit Memory | ohne Memory | Ergebnis |
+|---|---:|---:|---|
+| llama3.2:3b | kein vollständiger Lauf | kein vollständiger Lauf | Ollama ist mit `unexpected EOF` abgebrochen, bevor die Tabelle ausgegeben wurde. |
+| qwen2.5:3b | kein vollständiger Lauf | nicht fertig gemessen | Der Lauf wurde vor der Gesamttabelle beendet. |
+
+Bei den sichtbaren Qwen-Ergebnissen war die erste Raumfrage mit Kurzzeit-Memory richtig. Die Folgefragen zu Mensa und Campuskarte waren teilweise falsch. Bei der Langzeit-Aufgabe zur vegetarischen Vorliebe passte die sichtbare Antwort nicht zu den erwarteten Mahlzeiten. Die Messung muss nochmal vollständig laufen, damit die Zahlen und der Vergleich mit/ohne Memory stimmen.
+
+3. Jeder Fakt wird bei jeder neuen Frage in den System-Prompt eingefügt. Der zusätzliche Aufwand hängt von der Länge des Faktentextes ab und wird bei jeder Anfrage erneut als Eingabe-Token mitgeschickt. Im Code sind höchstens 50 Fakten erlaubt, deshalb können 500 Fakten nicht gespeichert werden. Bei vielen Fakten würde ich nur passende Erinnerungen auswählen, zum Beispiel nach Thema oder Relevanz zur aktuellen Frage.
+
+4. Memory Poisoning:
+
+   Den Poisoning-Versuch habe ich nicht separat ausgeführt. Laut Code kann ein schädlicher Fakt gespeichert werden, wenn der Agent eine Anweisung aus einem verarbeiteten Text übernimmt und selbst `merken` aufruft. In `memory_prompt()` steht zwar, dass die Fakten Angaben und keine Anweisungen sind, aber das Modell kann sich trotzdem davon beeinflussen lassen. Das Memory prüft den Inhalt nicht. Beim Buchen greift die Bestätigung vor dem schreibenden Werkzeug, aber das verhindert nicht, dass ein falscher oder gefährlicher Fakt gespeichert wird.
+
+5. Für eine vollständige Löschung müssen außer `memory.json` auch die Sitzungsdateien unter `sitzungen/` gelöscht werden, weil dort alte Nachrichten und Antworten stehen. Falls es Backups oder gespeicherte Logs dieser Daten gibt, müssen diese ebenfalls entfernt werden.
+
+### 4.4
+
+⇒ mensa_agent: Was gibt es heute in der Mensa?
+⇒ raum_agent: F-012 um 14 Uhr frei?
+→ heute()
+← Heute ist Dienstag, der 2026-11-03.
+→ mensa_speiseplan(datum='2026-11-05')
+← Mensa am donnerstag, 2026-11-05: ...
+→ raum_frei(datum='2026-11-05', raum='F-012')
+← F-012 am 2026-11-05 (donnerstag): frei um 08:00, ...
+Heute gibt es in der Mensa Gemüsepfanne mit Tofu (vegan), Fisch mit Salzkartoffeln und Pizza Margherita.
+F-012 ist um 14:00 Uhr frei.
+3 Werkzeugaufrufe · 6 Modellaufrufe · 2127 Eingabe-Tokens · 204.0 s · llama3.2:3b
+
+Teil 5 · Reflexion
+
+1. Mit LangGraph hätte ich die Knoten, Übergänge und Checkpoints nicht selbst bauen müssen. Dafür hätte ich eine zusätzliche Abhängigkeit und mehr Abstraktion, wodurch der Ablauf am Anfang schwerer zu verstehen ist. Für unseren kleinen Assistenten finde ich den eigenen Code zum Lernen sinnvoll; bei einem größeren System würde ich ein Framework nehmen.
+
+2. Eine Anweisung kann in einem Dokument oder einer Werkzeugantwort stehen und den Agenten dazu bringen, sie mit `merken` dauerhaft abzulegen. Das ist gefährlicher als eine Prompt Injection in einer einzelnen Sitzung, weil der gespeicherte Fakt auch spätere Gespräche beeinflusst. Dagegen helfen eine Prüfung und Bestätigung vor dem Speichern sowie eine klare Trennung zwischen Fakten und Anweisungen im Memory.
+
+3. Meine Einschätzung: Ein Supervisor ist praktisch, wenn eine Frage mehrere Fachbereiche betrifft und einzelne Spezialisten gezielter antworten können. Dafür entstehen zusätzliche Modellaufrufe und mehr Laufzeit; das Beispiel oben brauchte für zwei Teilfragen 6 Modellaufrufe, 2127 Eingabe-Tokens und 204 Sekunden. Der direkte Vergleich mit einem einzelnen Agenten fehlt hier noch, deshalb ist das nur eine vorläufige Einschätzung und muss mit den Messungen aus 4.4 verglichen werden.
+
+4. Eine Bestätigung sollte nötig sein, wenn ein Werkzeug etwas außerhalb des Gesprächs verändert oder Folgen hat, die schwer rückgängig zu machen sind, zum Beispiel eine Raumbuchung. `merken` verändert zwar dauerhafte Daten, betrifft aber nur das persönliche Memory und kann über `memory.py` wieder gelöscht werden. Trotzdem sollte die Person sehen und kontrollieren können, was gespeichert wurde.
+
+5. Für lange Gespräche würde ich ältere Nachrichten zusammenfassen und die letzten Nachrichten vollständig behalten. Das spart Tokens gegenüber dem ganzen Verlauf, aber die Zusammenfassung kann wichtige Details verlieren und muss bei neuen Themen aktualisiert werden.
+
+6. Der Arbeitsspeicher eines Containers geht bei einem Neustart verloren und ist zwischen mehreren Replikas nicht geteilt. Deshalb gehören Checkpoints in einen dauerhaften, gemeinsam erreichbaren Speicher, zum Beispiel eine Datenbank. Dann kann eine andere Replika die Sitzung fortsetzen.
+

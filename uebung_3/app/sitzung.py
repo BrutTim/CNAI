@@ -50,7 +50,10 @@ def speichern(sitzung: Sitzung) -> Path:
     # Für Fortgeschrittene: Was passiert mit dem alten Checkpoint, wenn das
     # Programm mitten im Schreiben abstürzt? Schreibt erst in eine .tmp-Datei
     # und benennt sie dann um (Path.replace).
-    raise NotImplementedError("TODO 4a: speichern()")
+    ORDNER.mkdir(exist_ok=True)
+    ziel = pfad(sitzung.id)
+    ziel.write_text(json.dumps(asdict(sitzung), ensure_ascii=False, indent=2), encoding="utf-8")
+    return ziel
 
 
 def laden(sitzungs_id: str) -> Sitzung | None:
@@ -59,7 +62,10 @@ def laden(sitzungs_id: str) -> Sitzung | None:
     #
     # Gibt es pfad(sitzungs_id) nicht, gebt None zurück. Sonst JSON lesen und
     # daraus wieder eine Sitzung machen: Sitzung(**daten).
-    raise NotImplementedError("TODO 4a: laden()")
+    ziel = pfad(sitzungs_id)
+    if not ziel.exists():
+        return None
+    return Sitzung(**json.loads(ziel.read_text(encoding="utf-8")))
 
 
 def kuerzen(nachrichten: list[dict], max_nachrichten: int = MAX_NACHRICHTEN) -> list[dict]:

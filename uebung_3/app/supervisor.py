@@ -117,16 +117,17 @@ def supervisor(aufgabe: str, werkzeuge: list[Werkzeug], bestaetigen=fragen, zeig
             print(f"  ⇒ {a.spezialist}_agent: {a.auftrag}")
 
     # TODO 4d: Aufträge an die Spezialisten verteilen
-    #
-    # Für jeden Auftrag a in plan.auftraege:
-    #  1. den passenden Spezialisten aus AGENTEN aufrufen, mit a.auftrag, der
-    #     vollen Werkzeugliste (er filtert selbst), bestaetigen und zeigen.
-    #  2. (a.spezialist, e.antwort) an teilantworten anhängen.
-    #  3. Schritte, Modellaufrufe, Eingabe- und Ausgabe-Tokens des Spezialisten
-    #     in `gesamt` aufaddieren und abgebrochen übernehmen. Sonst misst
-    #     messen.py nur den Supervisor, und der Vergleich ist geschönt.
     teilantworten = []
-
+    for a in plan.auftraege:
+        e = AGENTEN[a.spezialist](a.auftrag, werkzeuge, bestaetigen=bestaetigen, zeigen=zeigen)
+        teilantworten.append((a.spezialist, e.antwort))
+        gesamt.schritte += e.schritte
+        gesamt.modellaufrufe += e.modellaufrufe
+        gesamt.eingabe_tokens += e.eingabe_tokens
+        gesamt.ausgabe_tokens += e.ausgabe_tokens
+        if e.abgebrochen:
+            gesamt.abgebrochen = True
+    
     if not teilantworten:
         gesamt.antwort = plan.antwort or "Dazu habe ich keine Information."
     elif len(teilantworten) == 1:

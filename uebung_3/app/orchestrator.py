@@ -123,7 +123,11 @@ def aufruf_bearbeiten(sitzung: Sitzung, aufruf: dict, verzeichnis: dict[str, Wer
     # "wartet_auf_bestaetigung", merkt euch den Aufruf in sitzung.offene_aktion
     # und gebt die Sitzung zurück. ausfuehren() hört dann auf, der Checkpoint
     # ist geschrieben, das Programm endet. Weiter geht es mit entscheiden().
-
+    if werkzeug and werkzeug.schreibend:
+        sitzung.status = "wartet_auf_bestaetigung"
+        sitzung.offene_aktion = aufruf
+        return sitzung
+    
     schritt = werkzeug_ausfuehren(als_aufruf(aufruf), verzeichnis, bestaetigen=fragen)
     ergebnis_anhaengen(sitzung, aufruf["id"], schritt)
     return sitzung
@@ -182,6 +186,8 @@ def ausfuehren(sitzung: Sitzung, werkzeuge: list[Werkzeug], max_schritte: int = 
         #
         # Eine Zeile. Wo genau sie steht, entscheidet, wie viel Arbeit bei
         # einem Absturz verloren geht.
+        speichern(sitzung)
+        
 
     speichern(sitzung)
     return sitzung
@@ -232,7 +238,7 @@ if __name__ == "__main__":
     #
     # Im Moment beginnt jeder Aufruf bei null. Nutzt laden(args.sitzung) und
     # legt nur dann eine neue Sitzung an, wenn es noch keine gibt.
-    sitzung = Sitzung(id=args.sitzung)
+    sitzung = laden(args.sitzung) or Sitzung(id=args.sitzung)
 
     if args.verlauf:
         zeige_verlauf(sitzung)
