@@ -93,6 +93,22 @@ def heute() -> str:
 # Tragt das Werkzeug danach in LOKALE_WERKZEUGE ein, mit Beschreibung und
 # JSON-Schema. Testet es mit:
 #   docker compose run --rm app agent.py "Wie viele Tage habe ich noch, bis die Prüfungsanmeldung endet?"
+def tage_bis(datum: str) -> str:
+    try:    
+        ziel = date.fromisoformat(datum)
+    except ValueError:
+        return "Ungültiges Datum. Bitte im Format JJJJ-MM-TT angeben."
+    
+    tag = date.fromisoformat(os.environ["HEUTE"]) if os.environ.get("HEUTE") else date.today()    
+    diff = ziel - tag
+
+    if diff.days > 0:
+        return f"Noch {diff.days} Tage bis zum {ziel}."
+    elif diff.days < 0:
+        return f"Schon {abs(diff.days)} Tage her, seit dem {ziel}."
+    else:
+        return f"Das Datum {ziel} ist heute."
+
 
 
 LOKALE_WERKZEUGE = [
@@ -130,6 +146,24 @@ LOKALE_WERKZEUGE = [
         parameter={"type": "object", "properties": {}},
         funktion=heute,
     ),
+    Werkzeug(
+        name="tage_bis",
+        beschreibung=(
+            "Berechnet die Anzahl der Tage von heute bis zu einem Zieldatum. "
+            "Gibt zurück, wie viele Tage es noch sind oder ob das Datum in der Vergangenheit liegt."
+        ),
+        parameter={
+            "type": "object",
+            "properties": {
+                "datum": {
+                    "type": "string",
+                    "description": "Datum im Format JJJJ-MM-TT, zum Beispiel 2026-11-20",
+                },
+            },
+            "required": ["datum"],
+        },
+        funktion=tage_bis,
+    ),
 ]
 
 
@@ -139,3 +173,6 @@ if __name__ == "__main__":
     print(heute())
     print(suche_wissen("Attest"))
     print(lies_datei("mensa.md")[:200], "...")
+    print(tage_bis("2026-11-20"))
+  
+

@@ -82,7 +82,15 @@ def werkzeug_ausfuehren(aufruf, verzeichnis: dict[str, Werkzeug], bestaetigen=fr
     # Ist werkzeug.schreibend gesetzt, fragt zuerst bestaetigen(werkzeug, argumente).
     # Sagt die Person nein, führt das Werkzeug NICHT aus und gebt einen Schritt
     # mit fehler="abgelehnt" und einer klaren Nachricht an das Modell zurück.
-
+    if werkzeug.schreibend:
+        if not bestaetigen(werkzeug, argumente):
+            return Schritt(
+                name,
+                argumente,
+                "Aktion wurde von der Benutzerin / vom Benutzer abgelehnt.",
+                "abgelehnt",
+            )
+            
     try:
         ergebnis = str(werkzeug.funktion(**argumente))
     except TypeError as e:  # fehlende oder unbekannte Parameter
@@ -106,8 +114,6 @@ def agent(
     ergebnis = Ergebnis(antwort="")
     start = time.perf_counter()
 
-    # TODO 1: die Agent-Schleife
-    #
     # Wiederholt höchstens max_schritte Mal:
     #  1. Modell aufrufen: client.chat.completions.create(model=MODEL,
     #     messages=nachrichten, tools=tools, temperature=prompt.temperature,

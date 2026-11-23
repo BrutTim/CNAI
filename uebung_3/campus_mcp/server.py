@@ -88,7 +88,29 @@ def raum_frei(raum: str, datum: str) -> str:
 # Fehler gebt ihr als Text zurück, der mit "Fehler:" beginnt, statt eine
 # Exception zu werfen. Das Modell liest den Text und kann sich korrigieren.
 # Der Docstring ist die Beschreibung, die das Modell sieht. Schreibt ihn sorgfältig.
+@mcp.tool()
+def raum_buchen(raum: str, datum: str, uhrzeit: str, name: str) -> str:
+    raum = raum.strip().upper()
+    if raum not in BELEGUNG["raeume"]:
+        return f"Fehler: Raum {raum} gibt es nicht oder er ist nicht buchbar. Nutze raeume_auflisten."
+    
+    try:
+        tag = _wochentag(datum)
+    except ValueError:
+        return f"Fehler: '{datum}' ist kein Datum im Format JJJJ-MM-TT."
+        
+    if tag in ("samstag", "sonntag"):
+        return f"{raum} ist am {tag} geschlossen."
+    
+    if uhrzeit not in SLOTS:
+        return f"Fehler: '{uhrzeit}' ist kein gültiger Slot. Nutze raeume_auflisten."
+    
+    belegt = _belegt(raum, datum)
+    if uhrzeit in belegt:
+        return f"{raum} ist am {datum} ({tag}) um {uhrzeit} bereits belegt von {belegt[uhrzeit]}."
 
+    buchungen[(raum, datum, uhrzeit)] = name
+    return f"{raum} am {datum} ({tag}) um {uhrzeit} erfolgreich für {name} gebucht."
 
 @mcp.tool()
 def mensa_speiseplan(datum: str) -> str:
