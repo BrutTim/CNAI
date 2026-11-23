@@ -121,7 +121,43 @@ def agent(
     #     speichern, bei zeigen=True mit zeige_schritt() ausgeben und das
     #     Ergebnis als {"role": "tool", "tool_call_id": aufruf.id,
     #     "content": schritt.ergebnis} anhängen.
-    # Wer hier ankommt, hat das Limit erreicht: der Code darunter bricht ab.
+    # Wer hier ankommt, hat das Limit erreicht: der Code darunter bricht ab.for _ in range(max_schritte):
+    
+    for i in range(max_schritte):
+        response = client.chat.completions.create(model=MODEL,
+        messages=nachrichten,
+        tools=tools,
+        temperature=prompt.temperature,
+        max_tokens=500
+        )
+        ergebnis.modellaufrufe += 1    
+
+        ergebnis.eingabe_tokens += response.usage.prompt_tokens
+        ergebnis.ausgabe_tokens += response.usage.completion_tokens
+
+        nachricht = response.choices[0].message
+
+        if not nachricht.tool_calls:
+            ergebnis.antwort = response.choices[0].message.content   
+            ergebnis.sekunden = time.perf_counter() - start 
+            return ergebnis
+        else:
+            nachrichten.append(nachricht.model_dump(exclude_none=True))
+            
+
+        for aufruf in nachricht.tool_calls:
+            schritt = werkzeug_ausfuehren(aufruf, verzeichnis, bestaetigen)
+            ergebnis.schritte.append(schritt)
+            
+            if zeigen:
+                zeige_schritt(schritt)
+          
+            nachrichten.append({
+                "role": "tool",
+                "tool_call_id": aufruf.id,
+                "content": schritt.ergebnis,
+            })
+
 
     ergebnis.antwort = f"Abgebrochen nach {max_schritte} Modellaufrufen ohne Antwort."
     ergebnis.abgebrochen = True
