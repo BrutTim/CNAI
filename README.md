@@ -200,43 +200,50 @@ Es wird nicht doppelt gebucht, weil nach dem ersten Bestätigen offene_aktion so
 
 4.3 
 
-1. Beim Merken soll der Fakt als kurzer Satz über die Person gespeichert werden, zum Beispiel „Die Person isst vegetarisch.“ merken() speichert den Text aus dem Werkzeugaufruf so wie er kommt und entfernt nur Leerzeichen am Anfang und Ende. In meinem Lauf hat llama den Werkzeugaufruf teilweise fehlerhaft formatiert, dadurch wurde der Fakt nicht zuverlässig gespeichert.
+1. Beim Merken soll der Fakt als kurzer Satz über die Person gespeichert werden, zum Beispiel „Die Person isst vegetarisch.“ `merken()` speichert den Text aus dem Werkzeugaufruf so wie er kommt und entfernt nur Leerzeichen am Anfang und Ende. In meinem Lauf hat llama den Werkzeugaufruf teilweise fehlerhaft formatiert, dadurch wurde der Fakt nicht zuverlässig gespeichert.
 
 2. Messungen:
 
 docker compose run --rm app messen.py --sitzungen
 docker compose run --rm -e LLM_MODEL=qwen2.5:3b app messen.py --sitzungen
 
-| Modell | mit Memory | ohne Memory | Ergebnis |
-|---|---:|---:|---|
-| llama3.2:3b | kein vollständiger Lauf | kein vollständiger Lauf | Ollama ist mit `unexpected EOF` abgebrochen, bevor die Tabelle ausgegeben wurde. |
-| qwen2.5:3b | kein vollständiger Lauf | nicht fertig gemessen | Der Lauf wurde vor der Gesamttabelle beendet. |
+Modell: llama3.2:3b · 6 Aufgaben · Fenster 20 Nachrichten
 
-Bei den sichtbaren Qwen-Ergebnissen war die erste Raumfrage mit Kurzzeit-Memory richtig. Die Folgefragen zu Mensa und Campuskarte waren teilweise falsch. Bei der Langzeit-Aufgabe zur vegetarischen Vorliebe passte die sichtbare Antwort nicht zu den erwarteten Mahlzeiten. Die Messung muss nochmal vollständig laufen, damit die Zahlen und der Vergleich mit/ohne Memory stimmen.
+| Variante | Typ | Treffer | Werkzeuge | Aufrufe Σ | Tokens Σ | Dauer Σ |
+|---|---|---:|---:|---:|---:|---:|
+| mit Memory | kurzzeit | 1/6 | 6/6 | 12 | 10.360 | 102 s |
+| mit Memory | langzeit | 1/3 | 4/6 | 10 | 8.793 | 101 s |
+| ohne Memory | kurzzeit | 1/6 | 6/6 | 12 | 8.434 | 102 s |
+| ohne Memory | langzeit | 0/3 | 3/6 | 12 | 7.361 | 65 s |
+
+Qwen2.5:3b mache ich noch, die Tabelle ergänze ich danach.
+
+Bei llama verbessert das Memory die Kurzzeit-Aufgaben nicht: beide Varianten haben 1/6 Treffer. In den Langzeit-Aufgaben steigt die Trefferzahl mit Memory von 0/3 auf 1/3 und die Werkzeugquote von 3/6 auf 4/6. Dafür braucht die Variante mit Memory mehr Tokens und dauert länger. In meinem Lauf wurde „Wie heiße ich?“ richtig beantwortet; die vegetarische Mensa-Antwort passte nicht zu den erwarteten Gerichten und die Lerngruppenbuchung übernahm den Gruppennamen nicht richtig.
 
 3. Jeder Fakt wird bei jeder neuen Frage in den System-Prompt eingefügt. Der zusätzliche Aufwand hängt von der Länge des Faktentextes ab und wird bei jeder Anfrage erneut als Eingabe-Token mitgeschickt. Im Code sind höchstens 50 Fakten erlaubt, deshalb können 500 Fakten nicht gespeichert werden. Bei vielen Fakten würde ich nur passende Erinnerungen auswählen, zum Beispiel nach Thema oder Relevanz zur aktuellen Frage.
 
 4. Memory Poisoning:
 
-   Den Poisoning-Versuch habe ich nicht separat ausgeführt. Laut Code kann ein schädlicher Fakt gespeichert werden, wenn der Agent eine Anweisung aus einem verarbeiteten Text übernimmt und selbst `merken` aufruft. In `memory_prompt()` steht zwar, dass die Fakten Angaben und keine Anweisungen sind, aber das Modell kann sich trotzdem davon beeinflussen lassen. Das Memory prüft den Inhalt nicht. Beim Buchen greift die Bestätigung vor dem schreibenden Werkzeug, aber das verhindert nicht, dass ein falscher oder gefährlicher Fakt gespeichert wird.
+   Den Poisoning-Versuch habe ich nicht separat ausgeführt. Laut Code kann ein schädlicher Fakt gespeichert werden, wenn der Agent eine Anweisung aus einem verarbeiteten Text übernimmt und selbst merken aufruft. In memory_prompt() steht zwar, dass die Fakten Angaben und keine Anweisungen sind, aber das Modell kann sich trotzdem davon beeinflussen lassen. Das Memory prüft den Inhalt nicht. Beim Buchen greift die Bestätigung vor dem schreibenden Werkzeug, aber das verhindert nicht, dass ein falscher oder gefährlicher Fakt gespeichert wird.
 
-5. Für eine vollständige Löschung müssen außer `memory.json` auch die Sitzungsdateien unter `sitzungen/` gelöscht werden, weil dort alte Nachrichten und Antworten stehen. Falls es Backups oder gespeicherte Logs dieser Daten gibt, müssen diese ebenfalls entfernt werden.
+5. Für eine vollständige Löschung müssen außer memory.json auch die Sitzungsdateien unter sitzungen gelöscht werden, weil dort alte Nachrichten und Antworten stehen. Falls es Backups oder gespeicherte Logs dieser Daten gibt, müssen diese ebenfalls entfernt werden.
 
-### 4.4
+4.4
 
-⇒ mensa_agent: Was gibt es heute in der Mensa?
-⇒ raum_agent: F-012 um 14 Uhr frei?
-→ heute()
-← Heute ist Dienstag, der 2026-11-03.
-→ mensa_speiseplan(datum='2026-11-05')
-← Mensa am donnerstag, 2026-11-05: ...
-→ raum_frei(datum='2026-11-05', raum='F-012')
-← F-012 am 2026-11-05 (donnerstag): frei um 08:00, ...
-Heute gibt es in der Mensa Gemüsepfanne mit Tofu (vegan), Fisch mit Salzkartoffeln und Pizza Margherita.
-F-012 ist um 14:00 Uhr frei.
-3 Werkzeugaufrufe · 6 Modellaufrufe · 2127 Eingabe-Tokens · 204.0 s · llama3.2:3b
+1.
+Modell: llama3.2:3b · 13 Aufgaben
 
-Teil 5 · Reflexion
+Variante                  Antwort  Werkz.  ungültig  Fehler  Abbruch  Aufrufe Ø  Modell Ø  Tokens Ø  Dauer Ø
+agent.v1.yaml               3/13    9/13          0       3        0        0.8       1.8      1200    29.1s
+supervisor                  2/13   10/13          0       5        0        1.4       3.3      1291    29.0s
+
+Richtige Antworten nach Typ:
+Variante                       datum      direkt      wissen mehrschritt  schreibend        ohne       fehlt
+agent.v1.yaml                    1/4         1/1         0/4         1/1         0/1         0/1         0/1
+supervisor                       0/4         1/1         0/4         1/1         0/1         0/1         0/1
+
+
+## Teil 5 · Reflexion
 
 1. Mit LangGraph hätte ich die Knoten, Übergänge und Checkpoints nicht selbst bauen müssen. Dafür hätte ich eine zusätzliche Abhängigkeit und mehr Abstraktion, wodurch der Ablauf am Anfang schwerer zu verstehen ist. Für unseren kleinen Assistenten finde ich den eigenen Code zum Lernen sinnvoll; bei einem größeren System würde ich ein Framework nehmen.
 
